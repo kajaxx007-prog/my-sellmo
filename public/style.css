@@ -48,3 +48,179 @@ hr {
     margin-top: 5px;
     font-size: 0.8em;
 }
+
+/* public/style.css */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+h1 {
+    color: #2c3e50;
+}
+h2 {
+    color: #34495e;
+    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 10px;
+}
+h3 {
+    color: #7f8c8d;
+}
+hr {
+    margin: 20px 0;
+    border: 0;
+    border-top: 1px solid #eee;
+}
+
+/* Nawigacja */
+.nav {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    padding: 10px 0;
+    margin-bottom: 15px;
+}
+.nav a {
+    text-decoration: none;
+    color: #3498db;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+.nav a:hover {
+    background: #ecf0f1;
+}
+.nav span {
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+/* Formularze */
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #bdc3c7;
+    border-radius: 5px;
+    font-size: 16px;
+}
+.btn {
+    background: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+}
+.btn:hover {
+    background: #2980b9;
+}
+.btn-danger {
+    background: #e74c3c;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.btn-danger:hover {
+    background: #c0392b;
+}
+.error {
+    background: #e74c3c;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+/* Wyszukiwarka */
+.search-section {
+    background: #ecf0f1;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+.search-section input {
+    padding: 10px;
+    border: 1px solid #bdc3c7;
+    border-radius: 5px;
+    font-size: 16px;
+    width: 300px;
+    margin-right: 10px;
+}
+
+/* Lista zamówień */
+.order-list {
+    list-style: none;
+    padding: 0;
+}
+.order-list li {
+    background: #f9f9f9;
+    margin-bottom: 10px;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border-left: 5px solid #3498db;
+}
+.status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    margin-left: 10px;
+    color: white;
+}
+.status-nowe { background: #3498db; }
+.status-opłacone { background: #2ecc71; }
+.status-wysłane { background: #f39c12; }
+.status-zakończone { background: #95a5a6; }
+.order-list small {
+    display: block;
+    color: #7f8c8d;
+    margin-top: 5px;
+    font-size: 0.8em;
+}
+.actions {
+    margin-top: 8px;
+}
+.actions select {
+    padding: 3px;
+    border-radius: 3px;
+    border: 1px solid #bdc3c7;
+}
+
+/* Grupowanie */
+.day-group, .user-group {
+    margin-bottom: 30px;
+}
+.stats {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+.stats h2 {
+    color: white;
+    border: none;
+}
