@@ -93,7 +93,9 @@ app.post('/webhook', async (req, res) => {
                     continue;
                 }
 
-                console.log(`💬 Nowy komentarz pod live ${liveVideoId}: "${message}" od ${from.name}`);
+                // Bezpieczne pobieranie nazwy użytkownika
+                const userName = (from && from.name) ? from.name : 'Anonimowy Klient';
+                console.log(`💬 Nowy komentarz pod live ${liveVideoId}: "${message}" od ${userName}`);
 
                 const keyword = '+1';
                 if (message.includes(keyword)) {
@@ -104,15 +106,15 @@ app.post('/webhook', async (req, res) => {
                         if (!existingOrder) {
                             const newOrder = new Order({
                                 commentId,
-                                userName: from.name,
-                                userId: from.id,
+                                userName: userName,
+                                userId: from ? from.id : 'unknown',
                                 liveVideoId,
                                 productKeyword: keyword,
                                 quantity: 1,
                                 status: 'nowe'
                             });
                             await newOrder.save();
-                            console.log(`📦 Zapisano zamówienie dla ${from.name}`);
+                            console.log(`📦 Zapisano zamówienie dla ${userName}`);
                         } else {
                             console.log(`⏩ Komentarz ${commentId} już istnieje w bazie.`);
                         }
