@@ -5,20 +5,21 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const mongoose = require('mongoose');
 const session = require('express-session');
+const axios = require('axios');
 const Order = require('./models/Order');
 const User = require('./models/User');
+const BotTemplate = require('./models/BotTemplate');
+const authRoutes = require('./routes/auth');
+const botRoutes = require('./routes/bot');
+const { startScheduler, stopAllScheduledTasks, rescheduleTemplate } = require('./services/chatScheduler');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Konfiguracja sesji
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'tajny_klucz_sesji',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 godziny
-}));
+// Przekaż funkcję wysyłania do tras bota (do dynamicznego aktualizowania schedulera)
+botRoutes.setSendMessageCallback(sendMessageToLive);
 
-// Logowanie URI (z ukrytym hasłem) dla diagnostyki
+// ---- POŁĄCZENIE Z MONGODB ----
 const dbUri = process.env.MONGODB_URI;
 if (dbUri) {
     const maskedUri = dbUri.replace(/:([^@]+)@/, ':*****@');
@@ -28,257 +29,120 @@ if (dbUri) {
 }
 
 mongoose.connect(dbUri)
-    .then(() => console.log('✅ Połączono z MongoDB'))
+    .then(async () => {
+        console.log('✅ Połączono z MongoDB');
+        if (process.env.FACEBOOK_PAGE_ACCESS_TOKEN) {
+            await startScheduler(sendMessageToLive);
+            console.log('⏰ Scheduler chatbota uruchomiony');
+        }
+    })
     .catch(err => {
         console.error('❌ Błąd połączenia z MongoDB:', err.message);
         if (err.code === 'ENOTFOUND') console.error('   Nie można odnaleźć hosta – sprawdź nazwę klastra.');
         if (err.code === 'AUTHENTICATION_FAILED') console.error('   Błędne dane logowania – sprawdź hasło.');
     });
 
-// Ustawienia silnika widoków EJS
+// ---- USTAWIENIA WIDOKÓW I MIDDLEWARE ----
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 
-// Middleware do sprawdzania czy użytkownik jest zalogowany
-const requireAuth = (req, res, next) => {
-    if (req.session.userId) {
-        return next();
-    }
-    res.redirect('/login');
-};
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'tajny-klucz',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 dzień
+}));
 
-// Middleware do sprawdzania roli admina
-const requireAdmin = async (req, res, next) => {
+// ---- FUNKCJE POMOCNICZE ----
+function requireAuth(req, res, next) {
     if (!req.session.userId) {
         return res.redirect('/login');
     }
-    try {
-        const user = await User.findById(req.session.userId);
-        if (user && user.role === 'admin') {
-            return next();
-        }
-        res.status(403).send('Brak uprawnień administratora');
-    } catch (err) {
-        res.status(500).send('Błąd serwera');
+    next();
+}
+
+// Funkcja wysyłająca wiadomość do live (cykliczna i odpowiedź po zamówieniu)
+async function sendMessageToLive(message) {
+    const liveVideoId = global.currentLiveVideoId;
+    const pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+    if (!liveVideoId || !pageAccessToken) {
+        console.log('Brak aktywnego live lub tokena – nie wysyłam wiadomości');
+        return;
     }
-};
+    try {
+        await axios.post(
+            `https://graph.facebook.com/v25.0/${liveVideoId}/comments`,
+            { message },
+            { params: { access_token: pageAccessToken } }
+        );
+        console.log(`📤 Wysłano wiadomość do live: "${message}"`);
+    } catch (err) {
+        console.error('❌ Błąd wysyłania wiadomości:', err.response?.data || err.message);
+    }
+}
 
-// === STRONY PUBLICZNE ===
-
-// Strona główna z wyszukiwarką zamówień
+// ---- TRASY PUBLICZNE ----
 app.get('/', async (req, res) => {
     try {
         const orders = mongoose.connection.readyState === 1
-            ? await Order.find().sort({ timestamp: -1 }).limit(50)
+            ? await Order.find().sort({ timestamp: -1 }).limit(20)
             : [];
-        res.render('index', { 
-            title: 'Mój Sellmo', 
-            orders,
-            user: req.session.userId ? await User.findById(req.session.userId) : null,
-            searchedOrders: [],
-            searchedUser: ''
-        });
+        res.render('index', { title: 'Mój Sellmo', orders });
     } catch (err) {
         console.error('Błąd pobierania zamówień:', err);
-        res.render('index', { 
-            title: 'Mój Sellmo', 
-            orders: [],
-            user: null,
-            searchedOrders: [],
-            searchedUser: ''
-        });
+        res.render('index', { title: 'Mój Sellmo', orders: [] });
     }
 });
 
-// Wyszukiwarka zamówień po nazwie użytkownika
 app.get('/search', async (req, res) => {
+    const nameQuery = req.query.name;
+    if (!nameQuery) return res.redirect('/');
     try {
-        const searchName = req.query.name || '';
-        let searchedOrders = [];
-        
-        if (searchName.trim()) {
-            searchedOrders = await Order.find({ 
-                userName: { $regex: searchName, $options: 'i' } 
-            }).sort({ timestamp: -1 });
-        }
-        
-        const orders = mongoose.connection.readyState === 1
-            ? await Order.find().sort({ timestamp: -1 }).limit(50)
-            : [];
-            
-        res.render('index', { 
-            title: 'Mój Sellmo', 
-            orders,
-            user: req.session.userId ? await User.findById(req.session.userId) : null,
-            searchedOrders,
-            searchedUser: searchName
-        });
+        const orders = await Order.find({ userName: new RegExp(nameQuery, 'i') }).sort({ timestamp: -1 });
+        res.render('search', { orders, query: nameQuery });
     } catch (err) {
-        console.error('Błąd wyszukiwania:', err);
-        res.redirect('/');
+        console.error(err);
+        res.render('search', { orders: [], query: nameQuery });
     }
 });
 
-// Strona logowania
-app.get('/login', (req, res) => {
-    if (req.session.userId) {
-        return res.redirect('/admin');
-    }
-    res.render('login', { title: 'Zaloguj się' });
-});
+// ---- TRASY AUTENTYKACJI ----
+app.use(authRoutes);
 
-// Strona rejestracji
-app.get('/register', (req, res) => {
-    if (req.session.userId) {
-        return res.redirect('/admin');
-    }
-    res.render('register', { title: 'Zarejestruj się' });
-});
+// ---- TRASY CHATBOTA ----
+app.use(botRoutes);
 
-// === AUTORYZACJA ===
-
-// Rejestracja
-app.post('/register', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        
-        // Sprawdź czy użytkownik już istnieje
-        const existingUser = await User.findOne({ username });
-        if (existingUser) {
-            return res.render('register', { 
-                title: 'Zarejestruj się', 
-                error: 'Użytkownik już istnieje' 
-            });
-        }
-        
-        // Pierwszy zarejestrowany użytkownik zostaje adminem
-        const userCount = await User.countDocuments();
-        const user = new User({ 
-            username, 
-            password,
-            role: userCount === 0 ? 'admin' : 'user'
-        });
-        await user.save();
-        
-        req.session.userId = user._id;
-        res.redirect('/admin');
-    } catch (err) {
-        console.error('Błąd rejestracji:', err);
-        res.render('register', { 
-            title: 'Zarejestruj się', 
-            error: 'Błąd rejestracji' 
-        });
-    }
-});
-
-// Logowanie
-app.post('/login', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const user = await User.findOne({ username });
-        
-        if (!user || !(await user.comparePassword(password))) {
-            return res.render('login', { 
-                title: 'Zaloguj się', 
-                error: 'Nieprawidłowa nazwa użytkownika lub hasło' 
-            });
-        }
-        
-        req.session.userId = user._id;
-        res.redirect('/admin');
-    } catch (err) {
-        console.error('Błąd logowania:', err);
-        res.render('login', { 
-            title: 'Zaloguj się', 
-            error: 'Błąd logowania' 
-        });
-    }
-});
-
-// Wylogowanie
-app.get('/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
-});
-
-// === PANEL ADMINISTRATORA ===
-
-// Główna strona admina
+// ---- PANEL ADMINA ----
 app.get('/admin', requireAuth, async (req, res) => {
     try {
-        const user = await User.findById(req.session.userId);
-        
-        // Pobierz wszystkie zamówienia pogrupowane według dni
-        const allOrders = await Order.find().sort({ timestamp: -1 });
-        
-        // Grupowanie po dniu
-        const ordersByDay = {};
-        allOrders.forEach(order => {
+        const orders = await Order.find().sort({ timestamp: 1 });
+        const daysMap = {};
+        orders.forEach(order => {
             const day = order.timestamp.toISOString().split('T')[0];
-            if (!ordersByDay[day]) {
-                ordersByDay[day] = [];
-            }
-            ordersByDay[day].push(order);
+            if (!daysMap[day]) daysMap[day] = [];
+            daysMap[day].push(order);
         });
-        
-        // Grupowanie po użytkowniku
-        const ordersByUser = {};
-        allOrders.forEach(order => {
-            const userName = order.userName || 'Anonimowy';
-            if (!ordersByUser[userName]) {
-                ordersByUser[userName] = [];
-            }
-            ordersByUser[userName].push(order);
-        });
-        
-        res.render('admin', { 
-            title: 'Panel Administratora', 
-            user,
-            orders: allOrders,
-            ordersByDay,
-            ordersByUser
-        });
+        const days = Object.keys(daysMap).map(date => ({
+            date,
+            orders: daysMap[date]
+        }));
+        days.sort((a, b) => b.date.localeCompare(a.date));
+        res.render('admin', { days });
     } catch (err) {
-        console.error('Błąd panelu admina:', err);
-        res.status(500).send('Błąd serwera');
+        console.error(err);
+        res.send('Błąd serwera');
     }
 });
 
-// Zmiana statusu zamówienia
-app.post('/admin/order/:id/status', requireAuth, async (req, res) => {
-    try {
-        const { status } = req.body;
-        await Order.findByIdAndUpdate(req.params.id, { status });
-        res.redirect('/admin');
-    } catch (err) {
-        console.error('Błąd zmiany statusu:', err);
-        res.status(500).send('Błąd serwera');
-    }
-});
-
-// Usuwanie zamówienia
-app.post('/admin/order/:id/delete', requireAuth, async (req, res) => {
-    try {
-        await Order.findByIdAndDelete(req.params.id);
-        res.redirect('/admin');
-    } catch (err) {
-        console.error('Błąd usuwania:', err);
-        res.status(500).send('Błąd serwera');
-    }
-});
-
-// === WEBHOOK DLA FACEBOOKA ===
-// Endpoint GET: weryfikacja webhooka
+// ---- WEBHOOK FACEBOOKA ----
 app.get('/webhook', (req, res) => {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
-
     console.log('GET /webhook query:', req.query);
     if (mode && token === process.env.VERIFY_TOKEN) {
         console.log('✅ Webhook zweryfikowany');
@@ -289,12 +153,9 @@ app.get('/webhook', (req, res) => {
     }
 });
 
-// Endpoint POST: odbieranie zdarzeń (nowe komentarze)
 app.post('/webhook', async (req, res) => {
     const body = req.body;
     console.log('📩 Otrzymano zdarzenie z Facebooka:', JSON.stringify(body, null, 2));
-
-    // Zawsze odpowiadamy 200 OK natychmiast
     res.status(200).send('EVENT_RECEIVED');
 
     if (!body.entry) return;
@@ -305,7 +166,6 @@ app.post('/webhook', async (req, res) => {
 
         for (const change of changes) {
             if (change.field !== 'feed') continue;
-
             const value = change.value;
             if (value.item === 'comment' && value.verb === 'add') {
                 const commentId = value.comment_id;
@@ -318,14 +178,15 @@ app.post('/webhook', async (req, res) => {
                     continue;
                 }
 
-                // Bezpieczne pobieranie nazwy użytkownika
+                // Zapisz ID aktywnego live
+                global.currentLiveVideoId = liveVideoId;
+
                 const userName = (from && from.name) ? from.name : 'Anonimowy Klient';
                 console.log(`💬 Nowy komentarz pod live ${liveVideoId}: "${message}" od ${userName}`);
 
                 const keyword = '+1';
                 if (message.includes(keyword)) {
                     console.log(`✅ Znaleziono słowo kluczowe "${keyword}"`);
-
                     try {
                         const existingOrder = await Order.findOne({ commentId });
                         if (!existingOrder) {
@@ -340,6 +201,19 @@ app.post('/webhook', async (req, res) => {
                             });
                             await newOrder.save();
                             console.log(`📦 Zapisano zamówienie dla ${userName}`);
+
+                            // Automatyczna odpowiedź na komentarz
+                            const replyMessage = process.env.ORDER_REPLY_MESSAGE || 'Dziękujemy za zamówienie!';
+                            try {
+                                await axios.post(
+                                    `https://graph.facebook.com/v25.0/${commentId}/private_replies`,
+                                    { message: replyMessage },
+                                    { params: { access_token: process.env.FACEBOOK_PAGE_ACCESS_TOKEN } }
+                                );
+                                console.log(`💬 Odpowiedziano na komentarz ${commentId}`);
+                            } catch (replyErr) {
+                                console.error('❌ Błąd odpowiedzi:', replyErr.response?.data || replyErr.message);
+                            }
                         } else {
                             console.log(`⏩ Komentarz ${commentId} już istnieje w bazie.`);
                         }
@@ -352,7 +226,7 @@ app.post('/webhook', async (req, res) => {
     }
 });
 
-// Testowy endpoint do sprawdzenia statusu MongoDB
+// ---- ENDPOINTY TESTOWE ----
 app.get('/db-status', (req, res) => {
     const state = mongoose.connection.readyState;
     const states = {
@@ -368,7 +242,7 @@ app.get('/db-status', (req, res) => {
     });
 });
 
-// Uruchomienie serwera
+// ---- URUCHOMIENIE SERWERA ----
 app.listen(PORT, () => {
     console.log(`🚀 Serwer działa na porcie ${PORT}`);
 });

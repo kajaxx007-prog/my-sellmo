@@ -1,82 +1,25 @@
-<!-- views/admin.ejs -->
 <!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
+    <title>Panel Administratora</title>
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>⚙️ <%= title %></h1>
-        
-        <div class="nav">
-            <a href="/">Strona główna</a>
-            <span>Zalogowany jako: <%= user.username %> (<%= user.role %>)</span>
-            <a href="/logout">Wyloguj się</a>
-        </div>
-        
-        <hr>
-        
-        <!-- Statystyki -->
-        <div class="stats">
-            <h2>📊 Statystyki</h2>
-            <p>Liczba zamówień: <%= orders.length %></p>
-            <p>Liczba dni z zamówieniami: <%= Object.keys(ordersByDay).length %></p>
-        </div>
-        
-        <hr>
-        
-        <!-- Zamówienia pogrupowane według dni -->
-        <h2>📅 Zamówienia według dni</h2>
-        <% Object.keys(ordersByDay).sort().reverse().forEach(day => { %>
-            <div class="day-group">
-                <h3><%= day %></h3>
-                <ul class="order-list">
-                    <% ordersByDay[day].forEach(order => { %>
-                        <li>
-                            <strong><%= order.userName %></strong> 
-                            zamówił <%= order.quantity %>x <%= order.productKeyword %>
-                            <span class="status status-<%= order.status %>"><%= order.status %></span>
-                            <small><%= new Date(order.timestamp).toLocaleTimeString() %></small>
-                            <div class="actions">
-                                <form action="/admin/order/<%= order._id %>/status" method="POST" style="display:inline;">
-                                    <select name="status" onchange="this.form.submit()">
-                                        <option value="nowe" <%= order.status === 'nowe' ? 'selected' : '' %>>Nowe</option>
-                                        <option value="opłacone" <%= order.status === 'opłacone' ? 'selected' : '' %>>Opłacone</option>
-                                        <option value="wysłane" <%= order.status === 'wysłane' ? 'selected' : '' %>>Wysłane</option>
-                                        <option value="zakończone" <%= order.status === 'zakończone' ? 'selected' : '' %>>Zakończone</option>
-                                    </select>
-                                </form>
-                                <form action="/admin/order/<%= order._id %>/delete" method="POST" style="display:inline;">
-                                    <button type="submit" class="btn-danger" onclick="return confirm('Na pewno usunąć?')">Usuń</button>
-                                </form>
-                            </div>
-                        </li>
-                    <% }) %>
-                </ul>
-            </div>
+        <h2>Zamówienia wg dni</h2>
+        <% days.forEach(day => { %>
+            <h3><%= day.date %></h3>
+            <ul>
+                <% day.orders.forEach(order => { %>
+                    <li>
+                        <strong><%= order.userName %></strong> – <%= order.productKeyword %> (x<%= order.quantity %>)
+                        <br><small>Status: <%= order.status %> | <%= new Date(order.timestamp).toLocaleTimeString() %></small>
+                    </li>
+                <% }) %>
+            </ul>
         <% }) %>
-        
-        <hr>
-        
-        <!-- Zamówienia według użytkowników -->
-        <h2>👥 Zamówienia według użytkowników</h2>
-        <% Object.keys(ordersByUser).sort().forEach(userName => { %>
-            <div class="user-group">
-                <h3><%= userName %> (<%= ordersByUser[userName].length %> zamówień)</h3>
-                <ul class="order-list">
-                    <% ordersByUser[userName].forEach(order => { %>
-                        <li>
-                            <%= order.quantity %>x <%= order.productKeyword %> 
-                            <span class="status status-<%= order.status %>"><%= order.status %></span>
-                            <small><%= new Date(order.timestamp).toLocaleString() %></small>
-                        </li>
-                    <% }) %>
-                </ul>
-            </div>
-        <% }) %>
+        <p><a href="/logout">Wyloguj</a></p>
     </div>
 </body>
 </html>

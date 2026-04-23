@@ -1,0 +1,48 @@
+<!-- views/bot.ejs -->
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Chatbot – Panel Administratora</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Zarządzanie chatbotem</h2>
+        <p><a href="/admin">← Panel główny</a> | <a href="/logout">Wyloguj</a></p>
+        <hr>
+
+        <h3>Dodaj nową wiadomość</h3>
+        <form method="POST" action="/admin/bot/add">
+            <label>Treść wiadomości:</label><br>
+            <textarea name="content" rows="3" required></textarea><br><br>
+            <label>Co ile minut:</label>
+            <input type="number" name="intervalMinutes" min="1" value="10" required><br><br>
+            <button type="submit">Dodaj</button>
+        </form>
+
+        <hr>
+        <h3>Aktywne szablony</h3>
+        <% if (templates.length === 0) { %>
+            <p>Brak szablonów. Dodaj pierwszy powyżej.</p>
+        <% } else { %>
+            <ul class="order-list">
+                <% templates.forEach(t => { %>
+                    <li>
+                        <strong><%= t.content %></strong>
+                        <br><small>Co <%= t.intervalMinutes %> min | <%= t.active ? 'Aktywny' : 'Nieaktywny' %></small>
+                        <form method="POST" action="/admin/bot/edit/<%= t._id %>" style="display:inline; margin-left:10px;">
+                            <input type="text" name="content" value="<%= t.content %>" required>
+                            <input type="number" name="intervalMinutes" value="<%= t.intervalMinutes %>" required>
+                            <label>Aktywny:</label>
+                            <input type="checkbox" name="active" <%= t.active ? 'checked' : '' %>>
+                            <button type="submit">Zapisz</button>
+                        </form>
+                        <a href="/admin/bot/delete/<%= t._id %>" onclick="return confirm('Usunąć?')">Usuń</a>
+                    </li>
+                <% }) %>
+            </ul>
+        <% } %>
+    </div>
+</body>
+</html>

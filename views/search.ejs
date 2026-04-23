@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Wyniki wyszukiwania</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h3>Wyniki dla "<%= query %>"</h3>
+        <% if (orders.length === 0) { %>
+            <p>Brak zamówień.</p>
+        <% } else { %>
+            <ul>
+                <% orders.forEach(order => { %>
+                    <li><strong><%= order.userName %></strong> zamówił <%= order.productKeyword %> (x<%= order.quantity %>) dnia <%= order.timestamp.toLocaleDateString() %></li>
+                <% }) %>
+            </ul>
+        <% } %>
+        <p><a href="/">Powrót</a></p>
+    </div>
+</body>
+</html>
