@@ -128,6 +128,23 @@ app.post('/webhook', async (req, res) => {
     res.sendStatus(200);
 });
 
+
+// Testowy endpoint do sprawdzenia statusu MongoDB
+app.get('/db-status', (req, res) => {
+    const state = mongoose.connection.readyState;
+    const states = {
+        0: 'Rozłączona',
+        1: 'Połączona',
+        2: 'Łączenie...',
+        3: 'Rozłączanie...',
+    };
+    res.json({
+        status: states[state] || 'Nieznany',
+        dbName: mongoose.connection.name || 'brak'
+    });
+});
+
+
 // Uruchomienie serwera
 app.listen(PORT, () => {
     console.log(`🚀 Serwer działa na http://localhost:${PORT}`);
