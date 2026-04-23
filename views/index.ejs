@@ -1,0 +1,18 @@
+<!-- views/index.ejs (fragment) -->
+<div id="orders-container">
+    <h2>Ostatnie zamówienia</h2>
+    <% if (orders.length === 0) { %>
+        <p>Brak zamówień.</p>
+    <% } else { %>
+        <ul class="order-list">
+            <% orders.forEach(order => { %>
+                <li>
+                    <strong><%= order.userName %></strong> 
+                    zamówił <%= order.quantity %>x <%= order.productKeyword %> 
+                    <span class="status"><%= order.status %></span>
+                    <small><%= new Date(order.timestamp).toLocaleString() %></small>
+                </li>
+            <% }) %>
+        </ul>
+    <% } %>
+</div>
