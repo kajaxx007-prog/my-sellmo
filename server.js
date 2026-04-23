@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const mongoose = require('mongoose');
 const session = require('express-session');
+const MongoDBStore = require('connect-mongodb-session')(session);
 const axios = require('axios');
 const Order = require('./models/Order');
 const User = require('./models/User');
@@ -17,7 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Przekaż funkcję wysyłania do tras bota (do dynamicznego aktualizowania schedulera)
-botRoutes.setSendMessageCallback(sendMessageToLive);
+let sendMessageToLive;
 
 // ---- POŁĄCZENIE Z MONGODB ----
 const dbUri = process.env.MONGODB_URI;
@@ -42,7 +43,17 @@ mongoose.connect(dbUri)
         if (err.code === 'AUTHENTICATION_FAILED') console.error('   Błędne dane logowania – sprawdź hasło.');
     });
 
-// ---- USTAWIENIA WIDOKÓW I MIDDLEWARE ----
+// ---- TRWAŁY MAGAZYN SESJI W MONGODB ----
+const store = new MongoDBStore({
+    uri: process.env.MONGODB_URI,
+    collection: 'sessions'
+});
+
+store.on('error', (err) => {
+    console.error('❌ Błąd magazynu sesji:', err);
+});
+
+// ---- KONFIGURACJA WIDOKÓW I MIDDLEWARE ----
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -51,9 +62,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'tajny-klucz',
+    secret: process.env.SESSION_SECRET || 'bardzo-tajny-klucz',
     resave: false,
     saveUninitialized: false,
+    store: store,
     cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 dzień
 }));
 
@@ -66,7 +78,7 @@ function requireAuth(req, res, next) {
 }
 
 // Funkcja wysyłająca wiadomość do live (cykliczna i odpowiedź po zamówieniu)
-async function sendMessageToLive(message) {
+sendMessageToLive = async function(message) {
     const liveVideoId = global.currentLiveVideoId;
     const pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
     if (!liveVideoId || !pageAccessToken) {
@@ -83,7 +95,27 @@ async function sendMessageToLive(message) {
     } catch (err) {
         console.error('❌ Błąd wysyłania wiadomości:', err.response?.data || err.message);
     }
-}
+};
+
+// Przekazujemy funkcję do tras bota
+botRoutes.setSendMessageCallback(sendMessageToLive);
+
+// ---- POLITYKA PRYWATNOŚCI ----
+app.get('/privacy-policy', (req, res) => {
+    res.send(`
+        <h1>Polityka prywatności – Sellmo</h1>
+        <p>Data ostatniej aktualizacji: ${new Date().toISOString().split('T')[0]}</p>
+        <h2>Jakie dane zbieramy?</h2>
+        <p>Aplikacja Sellmo zbiera wyłącznie publicznie dostępne dane z komentarzy pod transmisjami na żywo na stronie Facebook, w tym imię i nazwisko użytkownika oraz treść komentarza, w celu automatyzacji przyjmowania zamówień.</p>
+        <h2>Jak wykorzystujemy te dane?</h2>
+        <p>Dane są przechowywane w bazie MongoDB Atlas i używane jedynie do wyświetlania listy zamówień w panelu administratora. Nie są udostępniane osobom trzecim.</p>
+        <h2>Podstawa prawna</h2>
+        <p>Przetwarzanie danych odbywa się w ramach uzasadnionego interesu administratora strony, polegającego na automatyzacji procesu sprzedaży. Użytkownik, pisząc komentarz z hasłem "+1", wyraża zgodę na przetwarzanie swojego imienia i nazwiska w celu realizacji zamówienia.</p>
+        <h2>Twoje prawa</h2>
+        <p>Każdy użytkownik może zażądać usunięcia swoich danych, kontaktując się z administratorem strony.</p>
+        <p><a href="/">Powrót</a></p>
+    `);
+});
 
 // ---- TRASY PUBLICZNE ----
 app.get('/', async (req, res) => {
