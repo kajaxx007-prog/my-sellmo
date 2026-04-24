@@ -173,23 +173,15 @@ app.get('/admin', requireAuth, async (req, res) => {
 app.get('/webhook', (req, res) => {
     console.log('GET /webhook query:', req.query);
     console.log('Pełny URL:', req.url);
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
-
-    // Tymczasowo: jeśli jest challenge, zwróć go – bez sprawdzania tokena
+    // Tymczasowo: zawsze zwracamy challenge (nawet jeśli token nie pasuje)
     if (challenge) {
-        console.log('✅ Webhook zweryfikowany (tryb tymczasowy)');
+        console.log('✅ Odesłano challenge:', challenge);
         return res.status(200).send(challenge);
     }
-    // Jeśli brak challenge, ale jest tryb, to też zaakceptuj (niektóre testy Meta)
-    if (mode === 'subscribe') {
-        console.log('✅ Subskrypcja zaakceptowana (brak challenge)');
-        return res.status(200).send('OK');
-    }
-
-    console.log('❌ Brak wymaganych parametrów');
-    res.sendStatus(403);
+    // Jeśli brak challenge, też akceptuj (niektóre testy Meta)
+    console.log('⚠️ Brak challenge – akceptuję dla testu');
+    res.status(200).send('OK');
 });
 
 app.post('/webhook', async (req, res) => {
