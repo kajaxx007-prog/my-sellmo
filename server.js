@@ -74,9 +74,21 @@ mongoose.connect(dbUri)
 
     if (process.env.FACEBOOK_PAGE_ACCESS_TOKEN) {
       try {
-        await startScheduler(sendMessageToLive);
-        console.log('⏰ Scheduler chatbota uruchomiony');
+        if (!global.schedulerStarted) {
+          global.schedulerStarted = true;
+
+          await startScheduler(sendMessageToLive);
+          console.log('⏰ Scheduler chatbota uruchomiony');
+        } else {
+          console.log('⚠️ Scheduler już działa — pomijam ponowne uruchomienie');
+        }
       } catch (schedulerError) {
+        console.error(
+          '❌ Błąd uruchamiania schedulera:',
+          schedulerError.message
+        );
+      }
+    } catch (schedulerError) {
         console.error(
           '❌ Błąd uruchamiania schedulera:',
           schedulerError.message
