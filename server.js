@@ -16,8 +16,28 @@ const { startScheduler, stopAllScheduledTasks, rescheduleTemplate } = require('.
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ---- FUNKCJA WYSYŁAJĄCA WIADOMOŚCI (zdefiniowana przed schedulerem) ----
+async function sendMessageToLive(message) {
+    const liveVideoId = global.currentLiveVideoId;
+    const pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+    if (!liveVideoId || !pageAccessToken) {
+        console.log('Brak aktywnego live lub tokena – nie wysyłam wiadomości');
+        return;
+    }
+    try {
+        await axios.post(
+            `https://graph.facebook.com/v25.0/${liveVideoId}/comments`,
+            { message },
+            { params: { access_token: pageAccessToken } }
+        );
+        console.log(`📤 Wysłano wiadomość do live: "${message}"`);
+    } catch (err) {
+        console.error('❌ Błąd wysyłania wiadomości:', err.response?.data || err.message);
+    }
+}
+
 // Przekaż funkcję wysyłania do tras bota (do dynamicznego aktualizowania schedulera)
-let sendMessageToLive;
+botRoutes.setSendMessageCallback(sendMessageToLive);
 
 // ---- POŁĄCZENIE Z MONGODB ----
 const dbUri = process.env.MONGODB_URI;
@@ -68,6 +88,9 @@ app.use(session({
     cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 dzień
 }));
 
+// ---- DEDYKOWANY HEALTH CHECK DLA RAILWAY ----
+app.get('/ping', (req, res) => res.send('pong'));
+
 // ---- FUNKCJE POMOCNICZE ----
 function requireAuth(req, res, next) {
     if (!req.session.userId) {
@@ -75,29 +98,6 @@ function requireAuth(req, res, next) {
     }
     next();
 }
-
-// Funkcja wysyłająca wiadomość do live (cykliczna i odpowiedź po zamówieniu)
-sendMessageToLive = async function(message) {
-    const liveVideoId = global.currentLiveVideoId;
-    const pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
-    if (!liveVideoId || !pageAccessToken) {
-        console.log('Brak aktywnego live lub tokena – nie wysyłam wiadomości');
-        return;
-    }
-    try {
-        await axios.post(
-            `https://graph.facebook.com/v25.0/${liveVideoId}/comments`,
-            { message },
-            { params: { access_token: pageAccessToken } }
-        );
-        console.log(`📤 Wysłano wiadomość do live: "${message}"`);
-    } catch (err) {
-        console.error('❌ Błąd wysyłania wiadomości:', err.response?.data || err.message);
-    }
-};
-
-// Przekazujemy funkcję do tras bota
-botRoutes.setSendMessageCallback(sendMessageToLive);
 
 // ---- POLITYKA PRYWATNOŚCI ----
 app.get('/privacy-policy', (req, res) => {
@@ -171,17 +171,17 @@ app.get('/admin', requireAuth, async (req, res) => {
 
 // ---- WEBHOOK FACEBOOKA ----
 app.get('/webhook', (req, res) => {
-    console.log('GET /webhook query:', req.query);
-    console.log('Pełny URL:', req.url);
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
-    // Tymczasowo: zawsze zwracamy challenge (nawet jeśli token nie pasuje)
-    if (challenge) {
-        console.log('✅ Odesłano challenge:', challenge);
-        return res.status(200).send(challenge);
+    console.log('GET /webhook query:', req.query);
+    if (mode && token === process.env.VERIFY_TOKEN) {
+        console.log('✅ Webhook zweryfikowany');
+        res.status(200).send(challenge);
+    } else {
+        console.log('❌ Błąd weryfikacji webhooka');
+        res.sendStatus(403);
     }
-    // Jeśli brak challenge, też akceptuj (niektóre testy Meta)
-    console.log('⚠️ Brak challenge – akceptuję dla testu');
-    res.status(200).send('OK');
 });
 
 app.post('/webhook', async (req, res) => {
