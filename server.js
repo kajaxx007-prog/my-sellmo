@@ -22,14 +22,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --------------------------------------------------
-// 1. SERWER MUSI NATYCHMIAST ODPOWIADAĆ NA /ping
+// NATYCHMIASTOWY HEALTHCHECK DLA RAILWAY
 // --------------------------------------------------
 app.get('/ping', (req, res) => {
   res.status(200).send('pong');
 });
 
 // --------------------------------------------------
-// 2. FUNKCJA WYSYŁANIA WIADOMOŚCI NA LIVE
+// FUNKCJA WYSYŁANIA WIADOMOŚCI NA LIVE
 // --------------------------------------------------
 async function sendMessageToLive(message) {
   const liveVideoId = global.currentLiveVideoId;
@@ -52,8 +52,11 @@ async function sendMessageToLive(message) {
   }
 }
 
+// Przekazanie callbacka do tras bota
+botRoutes.setSendMessageCallback(sendMessageToLive);
+
 // --------------------------------------------------
-// 3. POŁĄCZENIE Z MONGODB (ale dopiero po starcie serwera)
+// POŁĄCZENIE Z MONGODB
 // --------------------------------------------------
 const dbUri = process.env.MONGODB_URI;
 if (dbUri) {
@@ -63,34 +66,26 @@ if (dbUri) {
   console.error('❌ MONGODB_URI nie jest ustawione!');
 }
 
-// --------------------------------------------------
-// 4. START SERWERA – NASŁUCHIWANIE PORTU
-// --------------------------------------------------
-app.listen(PORT, () => {
-  console.log(`🚀 Serwer działa na porcie ${PORT}`);
-
-  // Dopiero po uruchomieniu nasłuchiwania łączymy z MongoDB
-  mongoose.connect(dbUri)
-    .then(async () => {
-      console.log('✅ Połączono z MongoDB');
-      if (process.env.FACEBOOK_PAGE_ACCESS_TOKEN) {
-        try {
-          await startScheduler(sendMessageToLive);
-          console.log('⏰ Scheduler chatbota uruchomiony');
-        } catch (schedulerError) {
-          console.error('❌ Błąd uruchamiania schedulera:', schedulerError.message);
-        }
+mongoose.connect(dbUri)
+  .then(async () => {
+    console.log('✅ Połączono z MongoDB');
+    if (process.env.FACEBOOK_PAGE_ACCESS_TOKEN) {
+      try {
+        await startScheduler(sendMessageToLive);
+        console.log('⏰ Scheduler chatbota uruchomiony');
+      } catch (schedulerError) {
+        console.error('❌ Błąd uruchamiania schedulera:', schedulerError.message);
       }
-    })
-    .catch(err => {
-      console.error('❌ Błąd połączenia z MongoDB:', err.message);
-      if (err.code === 'ENOTFOUND') console.error('Nie można odnaleźć hosta – sprawdź nazwę klastra.');
-      if (err.code === 'AUTHENTICATION_FAILED') console.error('Błędne dane logowania – sprawdź hasło.');
-    });
-});
+    }
+  })
+  .catch(err => {
+    console.error('❌ Błąd połączenia z MongoDB:', err.message);
+    if (err.code === 'ENOTFOUND') console.error('Nie można odnaleźć hosta – sprawdź nazwę klastra.');
+    if (err.code === 'AUTHENTICATION_FAILED') console.error('Błędne dane logowania – sprawdź hasło.');
+  });
 
 // --------------------------------------------------
-// 5. SESSION STORE W MONGODB (używamy URI po uruchomieniu)
+// SESSION STORE W MONGODB
 // --------------------------------------------------
 const store = new MongoDBStore({
   uri: process.env.MONGODB_URI,
@@ -102,7 +97,7 @@ store.on('error', (err) => {
 });
 
 // --------------------------------------------------
-// 6. MIDDLEWARE
+// MIDDLEWARE
 // --------------------------------------------------
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -120,7 +115,7 @@ app.use(session({
 }));
 
 // --------------------------------------------------
-// 7. AUTH MIDDLEWARE
+// AUTH MIDDLEWARE
 // --------------------------------------------------
 function requireAuth(req, res, next) {
   if (!req.session.userId) {
@@ -130,7 +125,7 @@ function requireAuth(req, res, next) {
 }
 
 // --------------------------------------------------
-// 8. POLITYKA PRYWATNOŚCI
+// POLITYKA PRYWATNOŚCI
 // --------------------------------------------------
 app.get('/privacy-policy', (req, res) => {
   res.send(`
@@ -145,7 +140,7 @@ app.get('/privacy-policy', (req, res) => {
 });
 
 // --------------------------------------------------
-// 9. HOME
+// HOME
 // --------------------------------------------------
 app.get('/', async (req, res) => {
   try {
@@ -160,7 +155,7 @@ app.get('/', async (req, res) => {
 });
 
 // --------------------------------------------------
-// 10. SEARCH
+// SEARCH
 // --------------------------------------------------
 app.get('/search', async (req, res) => {
   const nameQuery = req.query.name;
@@ -175,13 +170,13 @@ app.get('/search', async (req, res) => {
 });
 
 // --------------------------------------------------
-// 11. ROUTES
+// ROUTES
 // --------------------------------------------------
 app.use(authRoutes);
 app.use(botRoutes);
 
 // --------------------------------------------------
-// 12. ADMIN PANEL
+// ADMIN PANEL
 // --------------------------------------------------
 app.get('/admin', requireAuth, async (req, res) => {
   try {
@@ -203,7 +198,7 @@ app.get('/admin', requireAuth, async (req, res) => {
 });
 
 // --------------------------------------------------
-// 13. FACEBOOK WEBHOOK VERIFY
+// FACEBOOK WEBHOOK VERIFY
 // --------------------------------------------------
 app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
@@ -219,7 +214,7 @@ app.get('/webhook', (req, res) => {
 });
 
 // --------------------------------------------------
-// 14. FACEBOOK WEBHOOK EVENTS
+// FACEBOOK WEBHOOK EVENTS
 // --------------------------------------------------
 app.post('/webhook', async (req, res) => {
   const body = req.body;
@@ -294,7 +289,7 @@ app.post('/webhook', async (req, res) => {
 });
 
 // --------------------------------------------------
-// 15. DB STATUS
+// DB STATUS
 // --------------------------------------------------
 app.get('/db-status', (req, res) => {
   const state = mongoose.connection.readyState;
@@ -309,4 +304,11 @@ app.get('/db-status', (req, res) => {
     dbName: mongoose.connection.name || 'brak',
     error: mongoose.connection._connectionError?.message || null
   });
+});
+
+// --------------------------------------------------
+// START SERVER
+// --------------------------------------------------
+app.listen(PORT, () => {
+  console.log(`🚀 Serwer działa na porcie ${PORT}`);
 });
