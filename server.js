@@ -146,7 +146,7 @@ app.get('/privacy-policy', (req, res) => {
 
         <h2>1. Informacje ogólne</h2>
         <p>Niniejsza polityka prywatności określa zasady przetwarzania i ochrony danych osobowych przekazanych przez Użytkowników w związku z korzystaniem z aplikacji Sellmo (zwanej dalej „Aplikacją”).</p>
-        <p>Administratorem danych osobowych jest właściciel aplikacji Sellmo. Kontakt z Administratorem możliwy jest za pośrednictwem poczty elektronicznej: [twój adres e-mail].</p>
+        <p>Administratorem danych osobowych jest właściciel aplikacji Sellmo. Kontakt z Administratorem możliwy jest za pośrednictwem poczty elektronicznej: kajaxx007@gmail.com.</p>
 
         <h2>2. Zakres i cel zbierania danych</h2>
         <p>Aplikacja Sellmo automatyzuje proces przyjmowania zamówień podczas transmisji na żywo na platformie Facebook. W tym celu zbiera wyłącznie publicznie dostępne dane z komentarzy, które użytkownicy (klienci) samodzielnie publikują pod transmisjami na żywo, zawierające słowo kluczowe „+1”.</p>
@@ -184,7 +184,7 @@ app.get('/privacy-policy', (req, res) => {
             <li>wniesienia sprzeciwu wobec przetwarzania danych,</li>
             <li>cofnięcia zgody na przetwarzanie danych w dowolnym momencie bez wpływu na zgodność z prawem przetwarzania, którego dokonano na podstawie zgody przed jej cofnięciem.</li>
         </ul>
-        <p>Aby skorzystać z powyższych praw, należy skontaktować się z Administratorem za pośrednictwem poczty elektronicznej: [twój adres e-mail].</p>
+        <p>Aby skorzystać z powyższych praw, należy skontaktować się z Administratorem za pośrednictwem poczty elektronicznej: kajaxx007@gmail.com.</p>
         <p>Użytkownikowi przysługuje również prawo wniesienia skargi do organu nadzorczego – Prezesa Urzędu Ochrony Danych Osobowych, jeśli uzna, że przetwarzanie danych narusza przepisy RODO.</p>
 
         <h2>6. Pliki cookies</h2>
