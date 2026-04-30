@@ -1,0 +1,44 @@
+<!-- views/admin-products-edit.ejs -->
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Edytuj produkt</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<%- include('partials/navbar') %>    
+<div class="container">
+    <h2>Edytuj produkt</h2>
+    <p><a href="/admin/products">← Powrót do listy</a></p>
+    <% if (typeof error !== 'undefined' && error) { %><p style="color:red"><%= error %></p><% } %>
+    <% if (typeof success !== 'undefined' && success) { %><p style="color:green"><%= success %></p><% } %>
+
+    <form method="POST" action="/admin/products/edit/<%= product._id %>">
+        <label>Numer produktu:</label><br>
+        <input type="text" name="number" value="<%= product.number %>" required><br><br>
+        <label>Nazwa:</label><br>
+        <input type="text" name="name" value="<%= product.name %>" required><br><br>
+        <label>Cena zakupu:</label><br>
+        <input type="number" step="0.01" name="purchasePrice" value="<%= product.purchasePrice %>" required><br><br>
+        <label>Cena sprzedaży:</label><br>
+        <input type="number" step="0.01" name="sellingPrice" value="<%= product.sellingPrice %>" required><br><br>
+
+        <h3>Warianty (stany magazynowe)</h3>
+        <table border="1" cellpadding="5">
+            <tr><th>Kolor</th><th>Rozmiar</th><th>Stan</th><th>Zarezerwowane</th></tr>
+            <% product.variants.forEach((variant, index) => { %>
+            <tr>
+                <td><%= variant.color %></td>
+                <td><%= variant.size %></td>
+                <td><input type="number" name="stock_<%= index %>" value="<%= variant.stock %>" min="0" style="width:60px"></td>
+                <td><%= variant.reserved %></td>
+            </tr>
+            <% }) %>
+        </table>
+        <br>
+        <button type="submit">Zapisz zmiany</button>
+    </form>
+</div>
+</body>
+</html>

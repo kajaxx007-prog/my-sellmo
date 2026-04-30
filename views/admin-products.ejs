@@ -1,0 +1,47 @@
+<!-- views/admin-products.ejs -->
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Produkty – Panel Admina</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <%- include('partials/navbar') %>
+<div class="container">
+    <h2>Lista produktów</h2>
+    <p><a href="/admin/products/add">+ Dodaj nowy produkt</a> | <a href="/admin">← Panel główny</a></p>
+    <p><strong>Całkowity stan magazynowy:</strong> <%= totalStock %> szt. | <strong>Zainwestowano:</strong> <%= totalPurchase.toFixed(2) %> zł</p>
+    <hr>
+    <% products.forEach(p => { %>
+        <h3><%= p.number %> – <%= p.name %> (kupno: <%= p.purchasePrice %> zł, sprzedaż: <%= p.sellingPrice %> zł)</h3>
+        <table border="1" cellpadding="5">
+            <tr><th>Kolor</th><th>Rozmiar</th><th>Stan</th><th>Zarezerw.</th><th>Akcja</th></tr>
+            <% p.variants.forEach(v => { %>
+            <tr>
+                <td><%= v.color %></td>
+                <td><%= v.size %></td>
+                <td><%= v.stock %></td>
+                <td><%= v.reserved %></td>
+                <td>
+                    <form method="POST" action="/admin/products/variant/<%= v._id %>" style="display:inline">
+                        <input type="hidden" name="productId" value="<%= p._id %>">
+                        <input type="number" name="stock" value="<%= v.stock %>" style="width:60px">
+                        <button type="submit">Aktualizuj</button>
+                    </form>
+                </td>
+            </tr>
+            <% }) %>
+        </table>
+        <!-- Przyciski Edytuj i Usuń dla całego produktu -->
+        <div style="margin-top:5px;">
+            <a href="/admin/products/edit/<%= p._id %>"><button type="button">Edytuj produkt</button></a>
+            <form method="POST" action="/admin/products/delete/<%= p._id %>" style="display:inline" onsubmit="return confirm('Na pewno usunąć ten produkt?')">
+                <button type="submit" style="color:red;">Usuń produkt</button>
+            </form>
+        </div>
+        <hr>
+    <% }) %>
+</div>
+</body>
+</html>

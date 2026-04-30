@@ -1,0 +1,20 @@
+<!-- views/partials/navbar.ejs -->
+<nav style="background: #2c3e50; padding: 12px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; border-radius: 8px;">
+    <a href="/" style="color: #ecf0f1; text-decoration: none; font-weight: bold; font-size: 18px;">🏠 Strona główna</a>
+    <a href="/search" style="color: #ecf0f1; text-decoration: none;">🔍 Szukaj zamówienia</a>
+
+    <% if (isAuthenticated) { %>
+        <a href="/admin/bot" style="color: #ecf0f1; text-decoration: none;">🤖 Chatbot</a>
+        <a href="/admin/products" style="color: #ecf0f1; text-decoration: none;">📦 Produkty</a>
+        <a href="/admin/orders" style="color: #ecf0f1; text-decoration: none;">📋 Zamówienia</a>
+        <a href="/admin" style="color: #ecf0f1; text-decoration: none;">📊 Panel admina</a>
+        <span style="margin-left: auto; color: #bdc3c7; display: flex; align-items: center; gap: 10px;">
+            👤 <%= currentUser || 'Admin' %>
+            <a href="/logout" style="color: #e74c3c; text-decoration: none;">Wyloguj</a>
+        </span>
+    <% } else { %>
+        <span style="margin-left: auto;">
+            <a href="/login" style="color: #ecf0f1; text-decoration: none;">🔐 Zaloguj</a>
+        </span>
+    <% } %>
+</nav>

@@ -1,0 +1,79 @@
+<!-- views/admin-orders.ejs -->
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Zamówienia – Panel Admina</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <%- include('partials/navbar') %>
+    <div class="container">
+        <h2>Zamówienia klientów (wg dni)</h2>
+        <p><a href="/admin">← Panel główny</a></p>
+        <hr>
+        <% if (groupedOrders.length === 0) { %>
+            <p>Brak zamówień.</p>
+        <% } else { %>
+            <% groupedOrders.forEach(group => { %>
+                <div style="border:1px solid #ccc; margin-bottom:15px; padding:10px; border-radius:8px;">
+                    <!-- W miejscu, gdzie jest h3 z nazwą klienta -->
+                        <h3 style="margin-top:0;">
+                         <%= group.customerName %>
+                         <% if (group.customerShortId) { %>
+                         (ID: <%= group.customerShortId %>)
+                         <% } %>
+                         – <%= group.date %>
+                        </h3>
+                    <ul style="list-style-type: none; padding-left: 0;">
+                        <% group.items.forEach(item => { %>
+                            <li style="padding: 4px 0;">
+                                <strong><%= item.productName %></strong> – 
+                                <%= item.color %> / <%= item.size %>,
+                                <%= item.quantity %> szt. × <%= item.price.toFixed(2) %> zł = 
+                                <strong><%= (item.price * item.quantity).toFixed(2) %> zł</strong>
+                            </li>
+                        <% }) %>
+                    </ul>
+                    <p style="font-size: 1.2em;"><strong>Łączna kwota: <%= group.totalAmount.toFixed(2) %> zł</strong></p>
+
+                    <% if (group.orderIds.length > 1) { %>
+                        <p><strong>Statusy poszczególnych zamówień:</strong></p>
+                        <ul style="list-style-type: none; padding-left: 0;">
+                            <% group.orderIds.forEach(orderId => { %>
+                                <li style="margin-bottom: 6px;">
+                                    <span style="display: inline-block; min-width: 80px;">#<%= orderId %>:</span>
+                                    <form method="POST" action="/admin/orders/<%= orderId %>/status" style="display:inline">
+                                        <select name="status">
+                                            <option value="nieopłacone" <%= orderStatusMap[orderId] === 'nieopłacone' ? 'selected' : '' %>>Nieopłacone</option>
+                                            <option value="opłacone" <%= orderStatusMap[orderId] === 'opłacone' ? 'selected' : '' %>>Opłacone</option>
+                                            <option value="wysłane" <%= orderStatusMap[orderId] === 'wysłane' ? 'selected' : '' %>>Wysłane</option>
+                                            <option value="gotowe do odbioru" <%= orderStatusMap[orderId] === 'gotowe do odbioru' ? 'selected' : '' %>>Gotowe do odbioru</option>
+                                            <option value="anulowane" <%= orderStatusMap[orderId] === 'anulowane' ? 'selected' : '' %>>Anulowane</option>
+                                        </select>
+                                        <button type="submit">Zmień</button>
+                                    </form>
+                                </li>
+                            <% }) %>
+                        </ul>
+                    <% } else { %>
+                        <div style="margin-top: 10px;">
+                            <strong>Status zamówienia:</strong>
+                            <form method="POST" action="/admin/orders/<%= group.orderIds[0] %>/status" style="display:inline">
+                                <select name="status">
+                                    <option value="nieopłacone" <%= orderStatusMap[group.orderIds[0]] === 'nieopłacone' ? 'selected' : '' %>>Nieopłacone</option>
+                                    <option value="opłacone" <%= orderStatusMap[group.orderIds[0]] === 'opłacone' ? 'selected' : '' %>>Opłacone</option>
+                                    <option value="wysłane" <%= orderStatusMap[group.orderIds[0]] === 'wysłane' ? 'selected' : '' %>>Wysłane</option>
+                                    <option value="gotowe do odbioru" <%= orderStatusMap[group.orderIds[0]] === 'gotowe do odbioru' ? 'selected' : '' %>>Gotowe do odbioru</option>
+                                    <option value="anulowane" <%= orderStatusMap[group.orderIds[0]] === 'anulowane' ? 'selected' : '' %>>Anulowane</option>
+                                </select>
+                                <button type="submit">Zmień</button>
+                            </form>
+                        </div>
+                    <% } %>
+                </div>
+            <% }) %>
+        <% } %>
+    </div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!-- views/admin-products-add.ejs -->
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Dodaj produkt</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<%- include('partials/navbar') %>
+<body>
+<div class="container">
+    <h2>Dodaj nowy produkt</h2>
+    <p><a href="/admin/products">← Powrót do listy produktów</a></p>
+
+    <form id="product-form" method="POST" action="/admin/products/add">
+        <label>Numer produktu:</label><br>
+        <input type="text" name="number" required><br><br>
+        <label>Nazwa:</label><br>
+        <input type="text" name="name" required><br><br>
+        <label>Cena zakupu:</label><br>
+        <input type="number" step="0.01" name="purchasePrice" required><br><br>
+        <label>Cena sprzedaży:</label><br>
+        <input type="number" step="0.01" name="sellingPrice" required><br><br>
+
+        <h3>Warianty</h3>
+        <label>Kolory (oddzielone przecinkami):</label><br>
+        <input type="text" name="colors" id="colors" value="Czarny,Biały,Zielony" required><br><br>
+        <label>Rozmiary (oddzielone przecinkami):</label><br>
+        <input type="text" name="sizes" id="sizes" value="S,M,XL" required><br><br>
+
+        <button type="button" onclick="generateGrid()">Generuj siatkę</button>
+        <div id="grid-container" style="margin-top:20px;"></div>
+        <br>
+        <button type="submit" id="submit-btn" style="display:none;">Dodaj produkt</button>
+    </form>
+</div>
+
+<script>
+function generateGrid() {
+    const colorsInput = document.getElementById('colors');
+    const sizesInput = document.getElementById('sizes');
+    const colors = colorsInput.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    const sizes = sizesInput.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+    if (colors.length === 0 || sizes.length === 0) {
+        alert('Podaj co najmniej jeden kolor i jeden rozmiar.');
+        return;
+    }
+
+    let html = '<table border="1" cellpadding="5"><tr><th>Kolor / Rozmiar</th>';
+    sizes.forEach(size => html += `<th>${size}</th>`);
+    html += '</tr>';
+
+    colors.forEach(color => {
+        html += `<tr><td><strong>${color}</strong></td>`;
+        sizes.forEach(size => {
+            html += `<td><input type="number" name="stock_${color}_${size}" value="0" min="0" style="width:60px"></td>`;
+        });
+        html += '</tr>';
+    });
+    html += '</table>';
+
+    document.getElementById('grid-container').innerHTML = html;
+    document.getElementById('submit-btn').style.display = 'inline-block';
+}
+</script>
+</body>
+</html>
