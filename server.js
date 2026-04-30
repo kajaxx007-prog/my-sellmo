@@ -34,16 +34,18 @@ app.get('/ping', (req, res) => res.status(200).send('pong'));
 // --------------------------------------------------
 async function sendMessageToLive(message) {
   const liveVideoId = global.currentLiveVideoId;
-  const accessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
-  if (!liveVideoId || !accessToken) {
+  const pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+
+  if (!liveVideoId || !pageAccessToken) {
     console.log('Brak aktywnego live lub tokena – nie wysyłam wiadomości');
     return;
   }
+
   try {
     await axios.post(
       `https://graph.facebook.com/v25.0/${liveVideoId}/comments`,
       { message },
-      { params: { access_token: accessToken } }
+      { params: { access_token: pageAccessToken } }
     );
     console.log(`📤 Wysłano wiadomość do live: "${message}"`);
   } catch (err) {
@@ -70,15 +72,15 @@ mongoose.connect(dbUri)
       try {
         await startScheduler(sendMessageToLive);
         console.log('⏰ Scheduler chatbota uruchomiony');
-      } catch (err) {
-        console.error('❌ Błąd inicjowania schedulera:', err.message);
+      } catch (schedulerError) {
+        console.error('❌ Błąd uruchamiania schedulera:', schedulerError.message);
       }
     }
   })
   .catch(err => {
     console.error('❌ Błąd połączenia z MongoDB:', err.message);
-    if (err.code === 'ENOTFOUND') console.error('   Nieznany host – sprawdź nazwę klastra.');
-    if (err.code === 'AUTHENTICATION_FAILED') console.error('   Błędne dane logowania – sprawdź hasło.');
+    if (err.code === 'ENOTFOUND') console.error('Nie można odnaleźć hosta – sprawdź nazwę klastra.');
+    if (err.code === 'AUTHENTICATION_FAILED') console.error('Błędne dane logowania – sprawdź hasło.');
   });
 
 // --------------------------------------------------
@@ -91,6 +93,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Sesja w pamięci (wystarcza do pracy)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'bardzo-tajny-klucz',
   resave: false,
@@ -124,7 +127,7 @@ app.get('/privacy-policy', (req, res) => {
 });
 
 // --------------------------------------------------
-// STRONA GŁÓWNA
+// STRONA GŁÓWNA – BEZ WYŚWIETLANIA ZAMÓWIEŃ
 // --------------------------------------------------
 app.get('/', (req, res) => {
   res.render('index', { title: 'Mój Sellmo', orders: [] });
