@@ -122,8 +122,88 @@ function requireAuth(req, res, next) {
 // --------------------------------------------------
 // POLITYKA PRYWATNOŚCI
 // --------------------------------------------------
+// server.js
 app.get('/privacy-policy', (req, res) => {
-  res.send(`<h1>Polityka prywatności – Sellmo</h1><p>Data: ${new Date().toISOString().split('T')[0]}</p><p><a href="/">Powrót</a></p>`);
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="pl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Polityka prywatności – Sellmo</title>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; color: #2c3e50; }
+            h1 { color: #3498db; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+            h2 { color: #2c3e50; margin-top: 30px; }
+            a { color: #3498db; text-decoration: none; }
+            a:hover { text-decoration: underline; }
+            .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ecf0f1; font-size: 0.9em; color: #7f8c8d; }
+        </style>
+    </head>
+    <body>
+        <h1>Polityka prywatności – Sellmo</h1>
+        <p><strong>Data ostatniej aktualizacji:</strong> ${new Date().toISOString().split('T')[0]}</p>
+
+        <h2>1. Informacje ogólne</h2>
+        <p>Niniejsza polityka prywatności określa zasady przetwarzania i ochrony danych osobowych przekazanych przez Użytkowników w związku z korzystaniem z aplikacji Sellmo (zwanej dalej „Aplikacją”).</p>
+        <p>Administratorem danych osobowych jest właściciel aplikacji Sellmo. Kontakt z Administratorem możliwy jest za pośrednictwem poczty elektronicznej: [twój adres e-mail].</p>
+
+        <h2>2. Zakres i cel zbierania danych</h2>
+        <p>Aplikacja Sellmo automatyzuje proces przyjmowania zamówień podczas transmisji na żywo na platformie Facebook. W tym celu zbiera wyłącznie publicznie dostępne dane z komentarzy, które użytkownicy (klienci) samodzielnie publikują pod transmisjami na żywo, zawierające słowo kluczowe „+1”.</p>
+        <p>Zbieramy następujące dane:</p>
+        <ul>
+            <li>imię i nazwisko (publiczny identyfikator użytkownika Facebook),</li>
+            <li>identyfikator konta Facebook (Facebook ID),</li>
+            <li>treść komentarza (w celu wyodrębnienia szczegółów zamówienia, takich jak numer produktu, kolor, rozmiar).</li>
+        </ul>
+        <p>Dane te są wykorzystywane wyłącznie w celu:</p>
+        <ul>
+            <li>utworzenia zamówienia w bazie danych i skojarzenia go z konkretnym klientem,</li>
+            <li>nadania klientowi unikalnego, wewnętrznego identyfikatora (4-cyfrowego ID),</li>
+            <li>wysyłania automatycznej, prywatnej odpowiedzi z potwierdzeniem zamówienia i informacją o sposobie sprawdzenia jego statusu,</li>
+            <li>prowadzenia historii zamówień dostępnej dla Administratora w panelu aplikacji.</li>
+        </ul>
+        <p><strong>Podstawa prawna:</strong> Przetwarzanie danych odbywa się na podstawie art. 6 ust. 1 lit. b RODO (niezbędność do wykonania umowy sprzedaży, której stroną jest osoba składająca zamówienie) oraz art. 6 ust. 1 lit. f RODO (prawnie uzasadniony interes Administratora polegający na automatyzacji procesu sprzedaży i zapewnieniu sprawnej obsługi klienta).</p>
+
+        <h2>3. Przechowywanie danych</h2>
+        <p>Dane są przechowywane w bezpiecznej bazie danych MongoDB Atlas. Dostęp do bazy danych jest chroniony hasłem i zabezpieczony przed dostępem osób nieupoważnionych.</p>
+        <p>Dane są przechowywane przez okres niezbędny do realizacji zamówienia oraz do czasu przedawnienia ewentualnych roszczeń z tytułu zawartej umowy sprzedaży, zgodnie z obowiązującymi przepisami prawa.</p>
+
+        <h2>4. Udostępnianie danych</h2>
+        <p>Dane osobowe Użytkowników nie są udostępniane żadnym podmiotom trzecim, z wyjątkiem sytuacji, gdy jest to niezbędne do realizacji zamówienia (np. przekazanie danych firmie kurierskiej w celu dostarczenia przesyłki) lub wymagane przepisami prawa.</p>
+        <p>Podczas transmisji na żywo dane Użytkownika (imię i nazwisko) pozostają publicznie widoczne w komentarzach na platformie Facebook, co wynika z charakteru tej usługi. W takich przypadkach administratorem danych jest również Meta Platforms, Inc., a przetwarzanie odbywa się zgodnie z jej polityką prywatności dostępną na stronie: <a href="https://www.facebook.com/privacy/policy/" target="_blank">https://www.facebook.com/privacy/policy/</a>.</p>
+
+        <h2>5. Prawa Użytkowników</h2>
+        <p>Każdemu Użytkownikowi przysługuje prawo do:</p>
+        <ul>
+            <li>dostępu do swoich danych,</li>
+            <li>sprostowania (poprawiania) swoich danych,</li>
+            <li>usunięcia danych („prawo do bycia zapomnianym”),</li>
+            <li>ograniczenia przetwarzania danych,</li>
+            <li>przenoszenia danych,</li>
+            <li>wniesienia sprzeciwu wobec przetwarzania danych,</li>
+            <li>cofnięcia zgody na przetwarzanie danych w dowolnym momencie bez wpływu na zgodność z prawem przetwarzania, którego dokonano na podstawie zgody przed jej cofnięciem.</li>
+        </ul>
+        <p>Aby skorzystać z powyższych praw, należy skontaktować się z Administratorem za pośrednictwem poczty elektronicznej: [twój adres e-mail].</p>
+        <p>Użytkownikowi przysługuje również prawo wniesienia skargi do organu nadzorczego – Prezesa Urzędu Ochrony Danych Osobowych, jeśli uzna, że przetwarzanie danych narusza przepisy RODO.</p>
+
+        <h2>6. Pliki cookies</h2>
+        <p>Aplikacja Sellmo nie wykorzystuje plików cookies ani innych technologii śledzących do gromadzenia danych o użytkownikach.</p>
+
+        <h2>7. Zmiany w polityce prywatności</h2>
+        <p>Administrator zastrzega sobie prawo do wprowadzania zmian w niniejszej polityce prywatności. Wszelkie zmiany będą publikowane na tej stronie i wchodzą w życie z dniem ich opublikowania.</p>
+
+        <h2>8. Kontakt</h2>
+        <p>Wszelkie pytania dotyczące niniejszej polityki prywatności prosimy kierować na adres poczty elektronicznej: [twój adres e-mail].</p>
+
+        <p><a href="/">← Powrót do strony głównej</a></p>
+
+        <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} Sellmo. Wszelkie prawa zastrzeżone.</p>
+        </div>
+    </body>
+    </html>
+  `);
 });
 
 // --------------------------------------------------
