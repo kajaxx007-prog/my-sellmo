@@ -210,7 +210,7 @@ app.get('/privacy-policy', (req, res) => {
 // STRONA GŁÓWNA – BEZ WYŚWIETLANIA ZAMÓWIEŃ
 // --------------------------------------------------
 app.get('/', (req, res) => {
-  res.render('index', { title: 'Mój Sellmo', orders: [] });
+  res.render('index', { title: 'Styl & Moda', orders: [] });
 });
 
 // --------------------------------------------------
